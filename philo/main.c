@@ -1,0 +1,207 @@
+#define __USE_XOPEN_EXTENDED 1
+// #define __USE_MISC 1
+#include <unistd.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <sys/time.h>
+
+typedef struct s_arg_info
+{
+	size_t philo_count;
+	int time_to_die;
+	int time_to_eat;
+	int time_to_sleep;
+	pthread_mutex_t can_print;
+	struct timeval time_begin;
+} t_arg_info;
+
+typedef enum e_philo_state
+{
+	EAT,
+	THINK,
+	SLEEP,
+	DEAD,
+	FORK1,
+	FORK2
+} t_philo_state;
+
+typedef struct s_philo
+{
+	size_t index;
+	pthread_mutex_t fork_left;
+	pthread_mutex_t *fork_right;
+	t_philo_state state;
+	t_arg_info *input;
+	unsigned long long last_eaten;
+} t_philo;
+
+t_arg_info get_arg_info(char const *argv[])
+{
+	t_arg_info arg;
+
+	arg.philo_count = atoi(argv[1]);
+	arg.time_to_die = atoi(argv[2]);
+	arg.time_to_eat = atoi(argv[3]);
+	arg.time_to_sleep = atoi(argv[4]);
+	gettimeofday(&arg.time_begin, NULL);
+	if (pthread_mutex_init(&arg.can_print, NULL) != 0)
+		printf("Can print can't init\n");
+	return (arg);
+}
+
+unsigned long long get_ms(struct timeval begin)
+{
+	struct timeval current;
+
+	gettimeofday(&current, NULL);
+	return ((current.tv_sec - begin.tv_sec) * 1000 + (current.tv_usec - begin.tv_usec) / 1000);
+}
+
+int has_died(t_philo *const self, unsigned long long current_time)
+{
+	return (current_time - self->last_eaten > (unsigned long long)self->input->time_to_die);
+}
+
+void print_state(t_philo *const self)
+{
+	const char *state_string[6] = {"%lli %lu is eating\n",
+							 "%lli %lu is thinking\n",
+							 "%lli %lu is sleeping\n",
+							 "%lli %lu died\n",
+							 "%lli %lu has taken a fork1\n",
+							 "%lli %lu has taken a fork2\n"};
+	
+	pthread_mutex_lock(&self->input->can_print);
+	unsigned long long time = get_ms(self->input->time_begin);
+	if (has_died(self, time))
+	 	self->state = DEAD;
+	printf(state_string[self->state], time, self->index);
+	pthread_mutex_unlock(&self->input->can_print);
+}
+
+int philo_has_one_fork(t_philo *const self, pthread_mutex_t *current_fork, int fork_pos)
+{
+	unsigned long long current_time;
+	t_philo_state previous_state = self->state;
+	while (1)
+	{
+		current_time = get_ms(self->input->time_begin);
+		if (has_died(self, current_time))
+		{
+			print_state(self);
+			return (0);
+		}	
+		else if (pthread_mutex_trylock(current_fork) == 0)
+		{
+			self->state = FORK1 + fork_pos;
+			print_state(self);
+			if (self->state == DEAD)
+			{
+				pthread_mutex_unlock(current_fork);
+				return (0);
+			}
+			self->state = previous_state;
+			return (1);
+		}
+	}
+}
+
+int	philo_has_two_fork_in_time(t_philo *const self, pthread_mutex_t *a, pthread_mutex_t *b)
+{
+	if (philo_has_one_fork(self, a, (a < b)))
+	{
+		if (philo_has_one_fork(self, b, (b < a)))
+			return (1);
+		pthread_mutex_unlock(a);
+		return (0);
+	}
+	return (0);
+}
+
+void philo_eat(t_philo *const self)
+{
+	self->state = DEAD;
+	if (self->index % 2)
+	{
+		if (philo_has_two_fork_in_time(self, &self->fork_left, self->fork_right))
+			self->state = EAT;
+	}
+	else
+	{
+		if (philo_has_two_fork_in_time(self, self->fork_right, &self->fork_left))
+			self->state = EAT;
+	}
+	if (self->state == DEAD)
+		return ;
+	print_state(self);
+	if (self->state == DEAD)
+	{
+		pthread_mutex_unlock(self->fork_right);
+		pthread_mutex_unlock(&self->fork_left);
+		return ;
+	}
+	usleep(self->input->time_to_eat * 1000);
+	self->last_eaten = get_ms(self->input->time_begin);
+	pthread_mutex_unlock(self->fork_right);
+	pthread_mutex_unlock(&self->fork_left);
+}
+
+void *philo_start(void *arg)
+{
+	t_philo *const self = arg;
+
+	self->last_eaten = 0;
+	self->state = EAT;
+	philo_eat(self);
+	return (NULL);
+}
+
+int main(int argc, char const *argv[])
+{
+	t_arg_info arg;
+	size_t i;
+	t_philo *philos;
+
+	if (argc < 5 || argc > 6)
+		return (EXIT_FAILURE);
+	arg = get_arg_info(argv);
+	philos = malloc(sizeof(*philos) * arg.philo_count);
+	if (philos == NULL)
+		return (EXIT_FAILURE);
+	i = 0;
+	while (i < arg.philo_count - 1)
+	{
+		pthread_mutex_init(&philos[i].fork_left, NULL);
+		philos[i].input = &arg;
+		philos[i].fork_right = &(philos[i + 1].fork_left);
+		philos[i].index = i;
+		i++;
+	}
+	pthread_mutex_init(&philos[i].fork_left, NULL);
+	philos[i].input = &arg;
+	philos[i].fork_right = &(philos[0].fork_left);
+	philos[i].index = i;
+	i = 0;
+	pthread_t *threads = malloc(sizeof(*threads) * arg.philo_count);
+	while (i < arg.philo_count)
+	{
+		pthread_create(threads + i, NULL, philo_start, &philos[i]);
+		i += 2;
+	}
+	i = 1;
+	while (i < arg.philo_count)
+	{
+		pthread_create(threads + i, NULL, philo_start, &philos[i]);
+		i += 2;
+	}
+	i = 0;
+	while (i < arg.philo_count)
+	{
+		pthread_join(threads[i], NULL);
+		i++;
+	}
+	free(philos);
+	free(threads);
+	return (EXIT_SUCCESS);
+}
