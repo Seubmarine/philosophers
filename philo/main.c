@@ -60,7 +60,7 @@ unsigned long long get_ms(struct timeval begin)
 
 int has_died(t_philo *const self, unsigned long long current_time)
 {
-	return (current_time - self->last_eaten > (unsigned long long)self->input->time_to_die);
+	return (!(current_time <= self->last_eaten + self->input->time_to_die));
 }
 
 void print_state(t_philo *const self)
@@ -69,8 +69,8 @@ void print_state(t_philo *const self)
 							 "%lli %lu is thinking\n",
 							 "%lli %lu is sleeping\n",
 							 "%lli %lu died\n",
-							 "%lli %lu has taken a fork1\n",
-							 "%lli %lu has taken a fork2\n"};
+							 "%lli %lu has taken a fork\n",
+							 "%lli %lu has taken a fork\n"};
 	
 	pthread_mutex_lock(&self->input->can_print);
 	unsigned long long time = get_ms(self->input->time_begin);
@@ -150,12 +150,12 @@ unsigned long long time_to_do(t_philo *const self, unsigned long long current_ti
 {
 	(void) self;
 	(void) current_time;
-	// // if (current_time + time_to_do > self->last_eaten + self->input->time_to_die)
-	// // {
-	// // 	self->state = DEAD;
-	// // 	return (0);
-	// // 	// return (self->last_eaten + self->input->time_to_die - current_time);
-	// }
+	if (current_time + time_to_do > self->last_eaten + self->input->time_to_die)
+	{
+		// self->state = DEAD;
+		// return (0);
+		return (self->last_eaten + self->input->time_to_die - current_time);
+	}
 	return (time_to_do);
 }
 
@@ -182,7 +182,6 @@ void *philo_start(void *arg)
 
 	while (1)
 	{
-		self->last_eaten = 0;
 		self->state = THINK;
 		print_state(self);
 		if (self->state == DEAD)
@@ -208,18 +207,21 @@ int main(int argc, char const *argv[])
 	if (philos == NULL)
 		return (EXIT_FAILURE);
 	i = 0;
+	unsigned long long last_eaten = get_ms(arg.time_begin);
 	while (i < arg.philo_count - 1)
 	{
 		pthread_mutex_init(&philos[i].fork_left, NULL);
 		philos[i].input = &arg;
 		philos[i].fork_right = &(philos[i + 1].fork_left);
 		philos[i].index = i + 1;
+		philos[i].last_eaten = last_eaten;
 		i++;
 	}
 	pthread_mutex_init(&philos[i].fork_left, NULL);
 	philos[i].input = &arg;
 	philos[i].fork_right = &(philos[0].fork_left);
 	philos[i].index = i + 1;
+	philos[i].last_eaten = last_eaten;
 	i = 0;
 	pthread_t *threads = malloc(sizeof(*threads) * arg.philo_count);
 	while (i < arg.philo_count)
@@ -227,13 +229,13 @@ int main(int argc, char const *argv[])
 		pthread_create(threads + i, NULL, philo_start, &philos[i]);
 		i += 2;
 	}
+	// usleep(1000);
 	i = 1;
 	while (i < arg.philo_count)
 	{
 		pthread_create(threads + i, NULL, philo_start, &philos[i]);
 		i += 2;
 	}
-	usleep(1000);
 	i = 0;
 	while (i < arg.philo_count)
 	{
