@@ -34,6 +34,7 @@ typedef struct s_philo
 	t_philo_state state;
 	t_arg_info *input;
 	unsigned long long last_eaten;
+	// struct  timeval last_eaten;
 } t_philo;
 
 t_arg_info get_arg_info(char const *argv[])
@@ -57,6 +58,58 @@ unsigned long long get_ms(struct timeval begin)
 	gettimeofday(&current, NULL);
 	return ((current.tv_sec - begin.tv_sec) * 1000 + (current.tv_usec - begin.tv_usec) / 1000);
 }
+
+unsigned long long to_ms(struct timeval current)
+{
+	return ((current.tv_sec) * 1000 + (current.tv_usec) / 1000);
+}
+
+// unsigned long long to_usec(struct timeval current)
+// {
+// 	// return ((current.tv_sec) * 1000 + (current.tv_usec) / 1000);
+// }
+
+struct timeval time_passed(struct timeval begin, struct timeval current)
+{
+	struct timeval diff = {.tv_sec = current.tv_sec - begin.tv_sec, .tv_usec = current.tv_usec - begin.tv_usec};
+	return (diff);
+};
+
+void usleep_opti(unsigned int usec, struct timeval begin)
+{
+	(void) usec;
+	const unsigned long long time_to_reach = get_ms(begin) + usec;
+	unsigned long long current;
+	while (1)
+	{
+		current = get_ms(begin);
+		// printf("to reach %llu, current: %llu\n", time_to_reach, current);
+		if (current >= time_to_reach)
+			return ;
+		usleep(10);
+	}
+}
+
+// int main(int argc, char const *argv[])
+// {
+// 	(void) argc;
+// 	(void) argv;
+// 	struct timeval begin;
+// 	struct timeval current;
+// 	int i = 0;
+// 	while (i < 100)
+// 	{
+// 		gettimeofday(&begin, NULL);
+// 		printf("begin = %llu\n", to_ms(begin));
+// 		usleep_opti(200, begin);
+// 		gettimeofday(&current, NULL);
+// 		printf("current = %llu\n", to_ms(current));
+// 		struct timeval diff = time_passed(begin, current);
+// 		printf("diff = %llu\n", to_ms(diff));
+// 		i++;
+// 	}
+// 	return (0);
+// }
 
 int has_died(t_philo *const self, unsigned long long current_time)
 {
@@ -109,6 +162,7 @@ int philo_has_one_fork(t_philo *const self, pthread_mutex_t *current_fork, int f
 			self->state = previous_state;
 			return (1);
 		}
+		usleep(15);
 	}
 }
 
@@ -140,7 +194,7 @@ int philo_eat(t_philo *const self)
 	if (self->state == DEAD)
 		return (0);
 	self->last_eaten = get_ms(self->input->time_begin);
-	usleep(self->input->time_to_eat * 1000);
+	usleep_opti(self->input->time_to_eat, self->input->time_begin);
 	pthread_mutex_unlock(self->fork_right);
 	pthread_mutex_unlock(&self->fork_left);
 	return (1);
@@ -165,21 +219,22 @@ int philo_sleep(t_philo *const self)
 	print_state(self);
 	if (self->state == DEAD)
 		return (0);
-	int time_to_do_v = time_to_do(self, get_ms(self->input->time_begin), self->input->time_to_sleep);
-	usleep(time_to_do_v * 1000);
-	if (time_to_do_v != self->input->time_to_sleep)
-	{
-		self->state = DEAD;
-		print_state(self);
-		return (0);
-	}
+	// int time_to_do_v = time_to_do(self, get_ms(self->input->time_begin), self->input->time_to_sleep);
+	usleep_opti(self->input->time_to_sleep, self->input->time_begin);
+	// if (time_to_do_v != self->input->time_to_sleep)
+	// {
+	// 	self->state = DEAD;
+	// 	print_state(self);
+	// 	return (0);
+	// }
 	return (1);
 }
 
 void *philo_start(void *arg)
 {
 	t_philo *const self = arg;
-
+	// if (!(self->index % 2))
+	// 	sleep(10);
 	while (1)
 	{
 		self->state = THINK;
@@ -207,6 +262,7 @@ int main(int argc, char const *argv[])
 	if (philos == NULL)
 		return (EXIT_FAILURE);
 	i = 0;
+	pthread_t *threads = malloc(sizeof(*threads) * arg.philo_count);
 	unsigned long long last_eaten = get_ms(arg.time_begin);
 	while (i < arg.philo_count - 1)
 	{
@@ -223,7 +279,6 @@ int main(int argc, char const *argv[])
 	philos[i].index = i + 1;
 	philos[i].last_eaten = last_eaten;
 	i = 0;
-	pthread_t *threads = malloc(sizeof(*threads) * arg.philo_count);
 	while (i < arg.philo_count)
 	{
 		pthread_create(threads + i, NULL, philo_start, &philos[i]);
@@ -236,6 +291,7 @@ int main(int argc, char const *argv[])
 		pthread_create(threads + i, NULL, philo_start, &philos[i]);
 		i += 2;
 	}
+	// usleep_opti(arg.time_to_eat / 2, arg.time_begin);
 	i = 0;
 	while (i < arg.philo_count)
 	{
