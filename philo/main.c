@@ -239,6 +239,8 @@ void *philo_start(void *arg)
 	{
 		self->state = THINK;
 		print_state(self);
+		if (self->input->philo_count % 2)
+			usleep_opti(7, self->input->time_begin);
 		if (self->state == DEAD)
 			return (NULL);
 		if (!philo_eat(self))
