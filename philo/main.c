@@ -219,14 +219,14 @@ int philo_sleep(t_philo *const self)
 	print_state(self);
 	if (self->state == DEAD)
 		return (0);
-	// int time_to_do_v = time_to_do(self, get_ms(self->input->time_begin), self->input->time_to_sleep);
-	usleep_opti(self->input->time_to_sleep, self->input->time_begin);
-	// if (time_to_do_v != self->input->time_to_sleep)
-	// {
-	// 	self->state = DEAD;
-	// 	print_state(self);
-	// 	return (0);
-	// }
+	int time_to_do_v = time_to_do(self, get_ms(self->input->time_begin), self->input->time_to_sleep);
+	usleep_opti(time_to_do_v, self->input->time_begin);
+	if (time_to_do_v != self->input->time_to_sleep)
+	{
+		self->state = DEAD;
+		print_state(self);
+		return (0);
+	}
 	return (1);
 }
 
