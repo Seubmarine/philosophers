@@ -75,20 +75,27 @@ struct timeval time_passed(struct timeval begin, struct timeval current)
 	return (diff);
 };
 
-void usleep_opti(unsigned int usec, struct timeval begin)
+unsigned long long time_to_do(t_philo *const self, unsigned long long current_time, unsigned long long time_to_do)
 {
-	(void) usec;
-	const unsigned long long time_to_reach = get_ms(begin) + usec;
-	unsigned long long current;
-	while (1)
-	{
-		current = get_ms(begin);
-		// printf("to reach %llu, current: %llu\n", time_to_reach, current);
-		if (current >= time_to_reach)
-			return ;
-		usleep(10);
-	}
+	if (current_time + time_to_do <= self->last_eaten + self->input->time_to_die)
+		return (time_to_do);
+	return (self->last_eaten + self->input->time_to_die - current_time);
 }
+
+
+// void usleep_opti(unsigned int usec, struct timeval begin)
+// {
+// 	const unsigned long long time_to_reach = get_ms(begin) + usec;
+// 	unsigned long long current;
+// 	while (1)
+// 	{
+// 		current = get_ms(begin);
+// 		// printf("to reach %llu, current: %llu\n", time_to_reach, current);
+// 		if (current >= time_to_reach - 1)
+// 			return ;
+// 		usleep(10);
+// 	}
+// }
 
 // int main(int argc, char const *argv[])
 // {
@@ -113,7 +120,7 @@ void usleep_opti(unsigned int usec, struct timeval begin)
 
 int has_died(t_philo *const self, unsigned long long current_time)
 {
-	return (!(current_time <= self->last_eaten + self->input->time_to_die));
+	return (current_time >= self->last_eaten + self->input->time_to_die);
 }
 
 void print_state(t_philo *const self)
@@ -142,28 +149,22 @@ int philo_has_one_fork(t_philo *const self, pthread_mutex_t *current_fork, int f
 {
 	unsigned long long current_time;
 	t_philo_state previous_state = self->state;
-	while (1)
+	current_time = get_ms(self->input->time_begin);
+	if (has_died(self, current_time))
 	{
-		current_time = get_ms(self->input->time_begin);
-		if (has_died(self, current_time))
-		{
-			print_state(self);
-			return (0);
-		}	
-		else if (pthread_mutex_trylock(current_fork) == 0)
-		{
-			self->state = FORK1 + fork_pos;
-			print_state(self);
-			if (self->state == DEAD)
-			{
-				pthread_mutex_unlock(current_fork);
-				return (0);
-			}
-			self->state = previous_state;
-			return (1);
-		}
-		usleep(15);
+		print_state(self);
+		return (0);
 	}
+	pthread_mutex_lock(current_fork);
+	self->state = FORK1 + fork_pos;
+	print_state(self);
+	if (self->state == DEAD)
+	{
+		pthread_mutex_unlock(current_fork);
+		return (0);
+	}
+	self->state = previous_state;
+	return (1);
 }
 
 int	philo_has_two_fork_in_time(t_philo *const self, pthread_mutex_t *a, pthread_mutex_t *b)
@@ -194,23 +195,11 @@ int philo_eat(t_philo *const self)
 	if (self->state == DEAD)
 		return (0);
 	self->last_eaten = get_ms(self->input->time_begin);
-	usleep_opti(self->input->time_to_eat, self->input->time_begin);
+	usleep(time_to_do(self, get_ms(self->input->time_begin), self->input->time_to_eat) * 1000);
+	//usleep_opti(self->input->time_to_eat, self->input->time_begin);
 	pthread_mutex_unlock(self->fork_right);
 	pthread_mutex_unlock(&self->fork_left);
 	return (1);
-}
-
-unsigned long long time_to_do(t_philo *const self, unsigned long long current_time, unsigned long long time_to_do)
-{
-	(void) self;
-	(void) current_time;
-	if (current_time + time_to_do > self->last_eaten + self->input->time_to_die)
-	{
-		// self->state = DEAD;
-		// return (0);
-		return (self->last_eaten + self->input->time_to_die - current_time);
-	}
-	return (time_to_do);
 }
 
 int philo_sleep(t_philo *const self)
@@ -219,9 +208,10 @@ int philo_sleep(t_philo *const self)
 	print_state(self);
 	if (self->state == DEAD)
 		return (0);
-	int time_to_do_v = time_to_do(self, get_ms(self->input->time_begin), self->input->time_to_sleep);
-	usleep_opti(time_to_do_v, self->input->time_begin);
-	if (time_to_do_v != self->input->time_to_sleep)
+	
+	unsigned long long time_to_do_v = time_to_do(self, get_ms(self->input->time_begin), self->input->time_to_sleep);
+	usleep(time_to_do_v * 1000);
+	if (has_died(self, get_ms(self->input->time_begin)))
 	{
 		self->state = DEAD;
 		print_state(self);
@@ -239,8 +229,8 @@ void *philo_start(void *arg)
 	{
 		self->state = THINK;
 		print_state(self);
-		if (self->input->philo_count % 2)
-			usleep_opti(7, self->input->time_begin);
+		if (self->input->philo_count % 2 == 1)
+			usleep(200);
 		if (self->state == DEAD)
 			return (NULL);
 		if (!philo_eat(self))
@@ -281,17 +271,28 @@ int main(int argc, char const *argv[])
 	philos[i].index = i + 1;
 	philos[i].last_eaten = last_eaten;
 	i = 0;
-	while (i < arg.philo_count)
+	if (arg.philo_count % 2 == 1)
 	{
-		pthread_create(threads + i, NULL, philo_start, &philos[i]);
-		i += 2;
+		while (i < arg.philo_count)
+		{
+			pthread_create(threads + i, NULL, philo_start, &philos[i]);
+			i++;
+		}
 	}
-	// usleep(1000);
-	i = 1;
-	while (i < arg.philo_count)
+	else
 	{
-		pthread_create(threads + i, NULL, philo_start, &philos[i]);
-		i += 2;
+		while (i < arg.philo_count)
+		{
+			pthread_create(threads + i, NULL, philo_start, &philos[i]);
+			i += 2;
+		}
+		usleep(400);
+		i = 1;
+		while (i < arg.philo_count)
+		{
+			pthread_create(threads + i, NULL, philo_start, &philos[i]);
+			i += 2;
+		}
 	}
 	// usleep_opti(arg.time_to_eat / 2, arg.time_begin);
 	i = 0;
