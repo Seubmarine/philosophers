@@ -6,7 +6,7 @@
 /*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/12 22:43:59 by tbousque          #+#    #+#             */
-/*   Updated: 2022/10/12 22:59:27 by tbousque         ###   ########.fr       */
+/*   Updated: 2022/10/12 23:08:32 by tbousque         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@ typedef struct s_arg_info
 	int				time_to_die;
 	int				time_to_eat;
 	int				time_to_sleep;
+	unsigned long	cycle_count;
 	pthread_mutex_t	can_print;
 	struct timeval	time_begin;
 }	t_arg_info;
@@ -47,6 +48,7 @@ typedef struct s_philo
 	t_philo_state		state;
 	t_arg_info			*input;
 	unsigned long long	last_eaten;
+	unsigned long long	cycle_current;
 }	t_philo;
 
 //time helper
