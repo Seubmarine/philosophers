@@ -6,7 +6,7 @@
 /*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/12 22:45:26 by tbousque          #+#    #+#             */
-/*   Updated: 2022/10/13 00:36:21 by tbousque         ###   ########.fr       */
+/*   Updated: 2022/10/13 01:02:59 by tbousque         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -146,11 +146,11 @@ void *philo_start(void *arg)
 		if (self->input->cycle_count)
 			if (self->input->cycle_count <= self->cycle_current)
 				break ;
-		self->cycle_current++;
 		self->state = THINK;
 		print_state(self);
-		if (self->input->philo_count % 2 == 1)
-			usleep(200);
+		if (self->input->philo_count % 2 == 1 && self->cycle_current)
+			usleep(self->input->time_to_eat * 1000);
+		self->cycle_current++;
 		if (self->state == DEAD)
 			return (NULL);
 		if (!philo_eat(self))
