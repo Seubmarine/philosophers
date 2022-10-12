@@ -1,41 +1,16 @@
-#define __USE_XOPEN_EXTENDED 1
-// #define __USE_MISC 1
-#include <unistd.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <sys/time.h>
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   main.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2022/10/12 22:45:26 by tbousque          #+#    #+#             */
+/*   Updated: 2022/10/12 22:53:56 by tbousque         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
-typedef struct s_arg_info
-{
-	size_t philo_count;
-	int time_to_die;
-	int time_to_eat;
-	int time_to_sleep;
-	pthread_mutex_t can_print;
-	struct timeval time_begin;
-} t_arg_info;
-
-typedef enum e_philo_state
-{
-	EAT,
-	THINK,
-	SLEEP,
-	DEAD,
-	FORK1,
-	FORK2
-} t_philo_state;
-
-typedef struct s_philo
-{
-	size_t index;
-	pthread_mutex_t fork_left;
-	pthread_mutex_t *fork_right;
-	t_philo_state state;
-	t_arg_info *input;
-	unsigned long long last_eaten;
-	// struct  timeval last_eaten;
-} t_philo;
+#include "philo.h"
 
 t_arg_info get_arg_info(char const *argv[])
 {
@@ -49,78 +24,6 @@ t_arg_info get_arg_info(char const *argv[])
 	if (pthread_mutex_init(&arg.can_print, NULL) != 0)
 		printf("Can print can't init\n");
 	return (arg);
-}
-
-unsigned long long get_ms(struct timeval begin)
-{
-	struct timeval current;
-
-	gettimeofday(&current, NULL);
-	return ((current.tv_sec - begin.tv_sec) * 1000 + (current.tv_usec - begin.tv_usec) / 1000);
-}
-
-unsigned long long to_ms(struct timeval current)
-{
-	return ((current.tv_sec) * 1000 + (current.tv_usec) / 1000);
-}
-
-// unsigned long long to_usec(struct timeval current)
-// {
-// 	// return ((current.tv_sec) * 1000 + (current.tv_usec) / 1000);
-// }
-
-struct timeval time_passed(struct timeval begin, struct timeval current)
-{
-	struct timeval diff = {.tv_sec = current.tv_sec - begin.tv_sec, .tv_usec = current.tv_usec - begin.tv_usec};
-	return (diff);
-};
-
-unsigned long long time_to_do(t_philo *const self, unsigned long long current_time, unsigned long long time_to_do)
-{
-	if (current_time + time_to_do <= self->last_eaten + self->input->time_to_die)
-		return (time_to_do);
-	return (self->last_eaten + self->input->time_to_die - current_time);
-}
-
-
-// void usleep_opti(unsigned int usec, struct timeval begin)
-// {
-// 	const unsigned long long time_to_reach = get_ms(begin) + usec;
-// 	unsigned long long current;
-// 	while (1)
-// 	{
-// 		current = get_ms(begin);
-// 		// printf("to reach %llu, current: %llu\n", time_to_reach, current);
-// 		if (current >= time_to_reach - 1)
-// 			return ;
-// 		usleep(10);
-// 	}
-// }
-
-// int main(int argc, char const *argv[])
-// {
-// 	(void) argc;
-// 	(void) argv;
-// 	struct timeval begin;
-// 	struct timeval current;
-// 	int i = 0;
-// 	while (i < 100)
-// 	{
-// 		gettimeofday(&begin, NULL);
-// 		printf("begin = %llu\n", to_ms(begin));
-// 		usleep_opti(200, begin);
-// 		gettimeofday(&current, NULL);
-// 		printf("current = %llu\n", to_ms(current));
-// 		struct timeval diff = time_passed(begin, current);
-// 		printf("diff = %llu\n", to_ms(diff));
-// 		i++;
-// 	}
-// 	return (0);
-// }
-
-int has_died(t_philo *const self, unsigned long long current_time)
-{
-	return (current_time >= self->last_eaten + self->input->time_to_die);
 }
 
 void print_state(t_philo *const self)
@@ -196,7 +99,6 @@ int philo_eat(t_philo *const self)
 		return (0);
 	self->last_eaten = get_ms(self->input->time_begin);
 	usleep(time_to_do(self, get_ms(self->input->time_begin), self->input->time_to_eat) * 1000);
-	//usleep_opti(self->input->time_to_eat, self->input->time_begin);
 	pthread_mutex_unlock(self->fork_right);
 	pthread_mutex_unlock(&self->fork_left);
 	return (1);
@@ -223,8 +125,6 @@ int philo_sleep(t_philo *const self)
 void *philo_start(void *arg)
 {
 	t_philo *const self = arg;
-	// if (!(self->index % 2))
-	// 	sleep(10);
 	while (1)
 	{
 		self->state = THINK;
@@ -294,7 +194,6 @@ int main(int argc, char const *argv[])
 			i += 2;
 		}
 	}
-	// usleep_opti(arg.time_to_eat / 2, arg.time_begin);
 	i = 0;
 	while (i < arg.philo_count)
 	{

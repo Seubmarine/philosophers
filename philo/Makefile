@@ -2,7 +2,7 @@ NAME = philo
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror -pthread -g3 -O3
 
-SRCS = main.c
+SRCS = main.c time_helper.c
 OBJS = $(SRCS:%.c=%.o)
 
 $(NAME): $(OBJS)
