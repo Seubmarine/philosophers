@@ -6,7 +6,7 @@
 /*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/12 22:43:59 by tbousque          #+#    #+#             */
-/*   Updated: 2022/10/12 22:56:23 by tbousque         ###   ########.fr       */
+/*   Updated: 2022/10/12 22:59:27 by tbousque         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,13 +21,13 @@
 
 typedef struct s_arg_info
 {
-	size_t philo_count;
-	int time_to_die;
-	int time_to_eat;
-	int time_to_sleep;
-	pthread_mutex_t can_print;
-	struct timeval time_begin;
-} t_arg_info;
+	size_t			philo_count;
+	int				time_to_die;
+	int				time_to_eat;
+	int				time_to_sleep;
+	pthread_mutex_t	can_print;
+	struct timeval	time_begin;
+}	t_arg_info;
 
 typedef enum e_philo_state
 {
@@ -37,22 +37,23 @@ typedef enum e_philo_state
 	DEAD,
 	FORK1,
 	FORK2
-} t_philo_state;
+}	t_philo_state;
 
 typedef struct s_philo
 {
-	size_t index;
-	pthread_mutex_t fork_left;
-	pthread_mutex_t *fork_right;
-	t_philo_state state;
-	t_arg_info *input;
-	unsigned long long last_eaten;
-} t_philo;
+	size_t				index;
+	pthread_mutex_t		fork_left;
+	pthread_mutex_t		*fork_right;
+	t_philo_state		state;
+	t_arg_info			*input;
+	unsigned long long	last_eaten;
+}	t_philo;
 
 //time helper
 
-unsigned long long get_ms(struct timeval begin);
-unsigned long long time_to_do(t_philo *const self, \
+unsigned long long	get_ms(struct timeval begin);
+unsigned long long	time_to_do(t_philo *const self, \
 	unsigned long long current_time, unsigned long long time_to_do);
-int has_died(t_philo *const self, unsigned long long current_time);
+int					has_died(t_philo *const self, \
+	unsigned long long current_time);
 #endif
