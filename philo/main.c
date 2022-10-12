@@ -6,7 +6,7 @@
 /*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/12 22:45:26 by tbousque          #+#    #+#             */
-/*   Updated: 2022/10/12 23:20:05 by tbousque         ###   ########.fr       */
+/*   Updated: 2022/10/13 00:36:21 by tbousque         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@ t_arg_info get_arg_info(int argc, char const *argv[])
 	arg.time_to_die = atoi(argv[2]);
 	arg.time_to_eat = atoi(argv[3]);
 	arg.time_to_sleep = atoi(argv[4]);
+	arg.simulation_stop = 0;
 	arg.cycle_count = 0;
 	gettimeofday(&arg.time_begin, NULL);
 	if (argc == 6)
@@ -43,14 +44,22 @@ void print_state(t_philo *const self)
 							 "%lli %lu has taken a fork\n"};
 	
 	pthread_mutex_lock(&self->input->can_print);
-	unsigned long long time = get_ms(self->input->time_begin);
-	if (has_died(self, time))
-	 	self->state = DEAD;
-	printf(state_string[self->state], time, self->index);
-	if (self->state == FORK2)
+	if (self->input->simulation_stop)
+		self->state = DEAD;
+	else
 	{
-		self->state = EAT;
+		unsigned long long time = get_ms(self->input->time_begin);
+		if (has_died(self, time))
+		{
+			self->input->simulation_stop = 1;
+			self->state = DEAD;
+		}
 		printf(state_string[self->state], time, self->index);
+		if (self->state == FORK2)
+		{
+			self->state = EAT;
+			printf(state_string[self->state], time, self->index);
+		}
 	}
 	pthread_mutex_unlock(&self->input->can_print);
 }

@@ -6,7 +6,7 @@
 /*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/12 22:43:59 by tbousque          #+#    #+#             */
-/*   Updated: 2022/10/12 23:08:32 by tbousque         ###   ########.fr       */
+/*   Updated: 2022/10/13 00:31:26 by tbousque         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ typedef struct s_arg_info
 	int				time_to_sleep;
 	unsigned long	cycle_count;
 	pthread_mutex_t	can_print;
+	int				simulation_stop;
 	struct timeval	time_begin;
 }	t_arg_info;
 
