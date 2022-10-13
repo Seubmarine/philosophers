@@ -6,15 +6,15 @@
 /*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/12 22:45:26 by tbousque          #+#    #+#             */
-/*   Updated: 2022/10/13 03:06:00 by tbousque         ###   ########.fr       */
+/*   Updated: 2022/10/13 08:58:36 by tbousque         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-t_arg_info get_arg_info(int argc, char const *argv[])
+t_arg_info	get_arg_info(int argc, char const *argv[])
 {
-	t_arg_info arg;
+	t_arg_info	arg;
 
 	arg.philo_count = atoi(argv[1]);
 	arg.time_to_die = atoi(argv[2]);
@@ -34,21 +34,19 @@ t_arg_info get_arg_info(int argc, char const *argv[])
 	return (arg);
 }
 
-void print_state(t_philo *const self)
+void	print_state(t_philo *const self)
 {
-	const char *state_string[6] = {"%lli %lu is eating\n",
-							 "%lli %lu is thinking\n",
-							 "%lli %lu is sleeping\n",
-							 "%lli %lu died\n",
-							 "%lli %lu has taken a fork\n",
-							 "%lli %lu has taken a fork\n"};
-	
+	unsigned long long	time;
+	const char			*state_string[6] = {"%lli %lu is eating\n",
+		"%lli %lu is thinking\n", "%lli %lu is sleeping\n", "%lli %lu died\n",
+		"%lli %lu has taken a fork\n", "%lli %lu has taken a fork\n"};
+
 	pthread_mutex_lock(&self->input->can_print);
 	if (self->input->simulation_stop)
 		self->state = DEAD;
 	else
 	{
-		unsigned long long time = get_ms(self->input->time_begin);
+		time = get_ms(self->input->time_begin);
 		if (has_died(self, time))
 		{
 			self->input->simulation_stop = 1;
@@ -64,10 +62,12 @@ void print_state(t_philo *const self)
 	pthread_mutex_unlock(&self->input->can_print);
 }
 
-int philo_has_one_fork(t_philo *const self, pthread_mutex_t *current_fork, int fork_pos)
+int	philo_has_one_fork(t_philo *const self, pthread_mutex_t *current_fork, \
+	int fork_pos)
 {
-	unsigned long long current_time;
-	t_philo_state previous_state = self->state;
+	unsigned long long	current_time;
+	const t_philo_state	previous_state = self->state;
+
 	current_time = get_ms(self->input->time_begin);
 	if (has_died(self, current_time))
 	{
@@ -86,7 +86,8 @@ int philo_has_one_fork(t_philo *const self, pthread_mutex_t *current_fork, int f
 	return (1);
 }
 
-int	philo_has_two_fork_in_time(t_philo *const self, pthread_mutex_t *a, pthread_mutex_t *b)
+int	philo_has_two_fork_in_time(t_philo *const self, pthread_mutex_t *a, \
+	pthread_mutex_t *b)
 {
 	if (philo_has_one_fork(self, a, 0))
 	{
@@ -98,37 +99,39 @@ int	philo_has_two_fork_in_time(t_philo *const self, pthread_mutex_t *a, pthread_
 	return (0);
 }
 
-int philo_eat(t_philo *const self)
+int	philo_eat(t_philo *const self)
 {
 	self->state = DEAD;
 	if (self->index % 2)
 	{
-		if (philo_has_two_fork_in_time(self, &self->fork_left, self->fork_right))
+		if (philo_has_two_fork_in_time(self, &self->fork_left, \
+			self->fork_right))
 			self->state = EAT;
 	}
 	else
 	{
-		if (philo_has_two_fork_in_time(self, self->fork_right, &self->fork_left))
+		if (philo_has_two_fork_in_time(self, self->fork_right, \
+			&self->fork_left))
 			self->state = EAT;
 	}
 	if (self->state == DEAD)
 		return (0);
 	self->last_eaten = get_ms(self->input->time_begin);
-	usleep(time_to_do(self, get_ms(self->input->time_begin), self->input->time_to_eat) * 1000);
+	usleep(time_to_do(self, get_ms(self->input->time_begin), \
+		self->input->time_to_eat) * 1000);
 	pthread_mutex_unlock(self->fork_right);
 	pthread_mutex_unlock(&self->fork_left);
 	return (1);
 }
 
-int philo_sleep(t_philo *const self)
+int	philo_sleep(t_philo *const self)
 {
 	self->state = SLEEP;
 	print_state(self);
 	if (self->state == DEAD)
 		return (0);
-	
-	unsigned long long time_to_do_v = time_to_do(self, get_ms(self->input->time_begin), self->input->time_to_sleep);
-	usleep(time_to_do_v * 1000);
+	usleep(time_to_do(self, \
+		get_ms(self->input->time_begin), self->input->time_to_sleep) * 1000);
 	if (has_died(self, get_ms(self->input->time_begin)))
 	{
 		self->state = DEAD;
@@ -138,9 +141,10 @@ int philo_sleep(t_philo *const self)
 	return (1);
 }
 
-void *philo_start(void *arg)
+void	*philo_start(void *arg)
 {
-	t_philo *const self = arg;
+	t_philo *const	self = arg;
+
 	while (1)
 	{
 		if (self->input->cycle_count)
@@ -161,7 +165,8 @@ void *philo_start(void *arg)
 	return (NULL);
 }
 
-void	philos_pthread_create(t_philo *philos, pthread_t *threads, \
+//0 on success 1 on error
+size_t	philos_pthread_create_odd(t_philo *philos, pthread_t *threads, \
 	size_t philo_count)
 {
 	size_t	i;
@@ -171,32 +176,51 @@ void	philos_pthread_create(t_philo *philos, pthread_t *threads, \
 	{
 		while (i < philo_count)
 		{
-			pthread_create(threads + i, NULL, philo_start, &philos[i]);
+			if (pthread_create(threads + i, NULL, philo_start, &philos[i]) != 0)
+				return (i);
 			i++;
 		}
 	}
-	else
-	{
-		while (i < philo_count)
-		{
-			pthread_create(threads + i, NULL, philo_start, &philos[i]);
-			i += 2;
-		}
-		usleep(400);
-		i = 1;
-		while (i < philo_count)
-		{
-			pthread_create(threads + i, NULL, philo_start, &philos[i]);
-			i += 2;
-		}
-	}
+	return (0);
 }
 
-int main(int argc, char const *argv[])
+size_t	philos_pthread_create_even(t_philo *philos, pthread_t *threads, \
+	size_t philo_count)
 {
-	t_arg_info arg;
-	size_t i;
-	t_philo *philos;
+	size_t	i;
+
+	i = 0;
+	while (i < philo_count)
+	{
+		if (pthread_create(threads + i, NULL, philo_start, &philos[i]) != 0)
+			return (i);
+		i += 2;
+	}
+	usleep(400);
+	i = 1;
+	while (i < philo_count)
+	{
+		if (pthread_create(threads + i, NULL, philo_start, &philos[i]) != 0)
+			return (i);
+		i += 2;
+	}
+	return (0);
+}
+
+size_t	philos_pthread_create(t_philo *philos, pthread_t *threads, \
+	size_t philo_count)
+{
+	if (philo_count % 2 == 1)
+		return (philos_pthread_create_odd(philos, threads, philo_count));
+	else
+		return (philos_pthread_create_even(philos, threads, philo_count));
+}
+
+int	main(int argc, char const *argv[])
+{
+	t_arg_info	arg;
+	size_t		i;
+	t_philo		*philos;
 
 	if (argc < 5 || argc > 6)
 		return (EXIT_FAILURE);
@@ -221,7 +245,13 @@ int main(int argc, char const *argv[])
 	philos[i].fork_right = &(philos[0].fork_left);
 	philos[i].index = i + 1;
 	philos[i].last_eaten = last_eaten;
-	philos_pthread_create(philos, threads, arg.philo_count);
+	if(philos_pthread_create(philos, threads, arg.philo_count))
+	{
+		pthread_mutex_lock(&arg.can_print);
+		(void)!write(STDERR_FILENO, "Error creating thread, simulation will stop\n", 44);
+		arg.simulation_stop = 1;
+		pthread_mutex_unlock(&arg.can_print);
+	}
 	i = 0;
 	while (i < arg.philo_count)
 	{
