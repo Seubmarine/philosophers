@@ -6,7 +6,7 @@
 /*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/12 22:45:26 by tbousque          #+#    #+#             */
-/*   Updated: 2022/10/13 01:02:59 by tbousque         ###   ########.fr       */
+/*   Updated: 2022/10/13 03:06:00 by tbousque         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -161,6 +161,37 @@ void *philo_start(void *arg)
 	return (NULL);
 }
 
+void	philos_pthread_create(t_philo *philos, pthread_t *threads, \
+	size_t philo_count)
+{
+	size_t	i;
+
+	i = 0;
+	if (philo_count % 2 == 1)
+	{
+		while (i < philo_count)
+		{
+			pthread_create(threads + i, NULL, philo_start, &philos[i]);
+			i++;
+		}
+	}
+	else
+	{
+		while (i < philo_count)
+		{
+			pthread_create(threads + i, NULL, philo_start, &philos[i]);
+			i += 2;
+		}
+		usleep(400);
+		i = 1;
+		while (i < philo_count)
+		{
+			pthread_create(threads + i, NULL, philo_start, &philos[i]);
+			i += 2;
+		}
+	}
+}
+
 int main(int argc, char const *argv[])
 {
 	t_arg_info arg;
@@ -190,30 +221,7 @@ int main(int argc, char const *argv[])
 	philos[i].fork_right = &(philos[0].fork_left);
 	philos[i].index = i + 1;
 	philos[i].last_eaten = last_eaten;
-	i = 0;
-	if (arg.philo_count % 2 == 1)
-	{
-		while (i < arg.philo_count)
-		{
-			pthread_create(threads + i, NULL, philo_start, &philos[i]);
-			i++;
-		}
-	}
-	else
-	{
-		while (i < arg.philo_count)
-		{
-			pthread_create(threads + i, NULL, philo_start, &philos[i]);
-			i += 2;
-		}
-		usleep(400);
-		i = 1;
-		while (i < arg.philo_count)
-		{
-			pthread_create(threads + i, NULL, philo_start, &philos[i]);
-			i += 2;
-		}
-	}
+	philos_pthread_create(philos, threads, arg.philo_count);
 	i = 0;
 	while (i < arg.philo_count)
 	{
