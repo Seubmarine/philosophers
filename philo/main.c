@@ -6,7 +6,7 @@
 /*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/12 22:45:26 by tbousque          #+#    #+#             */
-/*   Updated: 2022/10/13 08:58:36 by tbousque         ###   ########.fr       */
+/*   Updated: 2022/10/13 09:31:59 by tbousque         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -165,55 +165,20 @@ void	*philo_start(void *arg)
 	return (NULL);
 }
 
-//0 on success 1 on error
-size_t	philos_pthread_create_odd(t_philo *philos, pthread_t *threads, \
-	size_t philo_count)
+void *philo_start_one(void *arg)
 {
-	size_t	i;
+	t_philo *const	self = arg;
 
-	i = 0;
-	if (philo_count % 2 == 1)
-	{
-		while (i < philo_count)
-		{
-			if (pthread_create(threads + i, NULL, philo_start, &philos[i]) != 0)
-				return (i);
-			i++;
-		}
-	}
-	return (0);
-}
-
-size_t	philos_pthread_create_even(t_philo *philos, pthread_t *threads, \
-	size_t philo_count)
-{
-	size_t	i;
-
-	i = 0;
-	while (i < philo_count)
-	{
-		if (pthread_create(threads + i, NULL, philo_start, &philos[i]) != 0)
-			return (i);
-		i += 2;
-	}
-	usleep(400);
-	i = 1;
-	while (i < philo_count)
-	{
-		if (pthread_create(threads + i, NULL, philo_start, &philos[i]) != 0)
-			return (i);
-		i += 2;
-	}
-	return (0);
-}
-
-size_t	philos_pthread_create(t_philo *philos, pthread_t *threads, \
-	size_t philo_count)
-{
-	if (philo_count % 2 == 1)
-		return (philos_pthread_create_odd(philos, threads, philo_count));
-	else
-		return (philos_pthread_create_even(philos, threads, philo_count));
+	self->state = THINK;
+	print_state(self);
+	self->state = FORK1;
+	pthread_mutex_lock(self->fork_right);
+	print_state(self);
+	usleep(time_to_do(self, get_ms(self->input->time_begin), self->input->time_to_die) * 1000);
+	self->state = DEAD;
+	pthread_mutex_unlock(self->fork_right);
+	print_state(self);
+	return (NULL);
 }
 
 int	main(int argc, char const *argv[])
@@ -245,7 +210,9 @@ int	main(int argc, char const *argv[])
 	philos[i].fork_right = &(philos[0].fork_left);
 	philos[i].index = i + 1;
 	philos[i].last_eaten = last_eaten;
-	if(philos_pthread_create(philos, threads, arg.philo_count))
+	if (arg.philo_count == 1)
+		pthread_create(threads + i, NULL, philo_start_one, &philos[i]);
+	else if(philos_pthread_create(philos, threads, arg.philo_count, philo_start))
 	{
 		pthread_mutex_lock(&arg.can_print);
 		(void)!write(STDERR_FILENO, "Error creating thread, simulation will stop\n", 44);
