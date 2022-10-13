@@ -6,7 +6,7 @@
 /*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/13 09:43:53 by tbousque          #+#    #+#             */
-/*   Updated: 2022/10/13 09:49:55 by tbousque         ###   ########.fr       */
+/*   Updated: 2022/10/13 12:02:55 by tbousque         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,11 +15,13 @@
 int	philo_has_one_fork(t_philo *const self, pthread_mutex_t *current_fork, \
 	int fork_pos)
 {
-	unsigned long long	current_time;
 	const t_philo_state	previous_state = self->state;
 
-	current_time = get_ms(self->input->time_begin);
-	if (has_died(self, current_time))
+	if (self->cycle_current != 0 && self->input->time_to_eat > \
+		self->input->time_to_sleep)
+		usleep((self->input->time_to_die - self->input->time_to_eat - \
+			self->input->time_to_sleep) * 1000);
+	if (has_died(self, get_ms(self->input->time_begin)))
 	{
 		print_state(self);
 		return (0);
@@ -104,13 +106,13 @@ void	*philo_start(void *arg)
 		print_state(self);
 		if (self->input->philo_count % 2 == 1 && self->cycle_current)
 			usleep(self->input->time_to_eat * 1000);
-		self->cycle_current++;
 		if (self->state == DEAD)
 			return (NULL);
 		if (!philo_eat(self))
 			return (NULL);
 		if (!philo_sleep(self))
 			return (NULL);
+		self->cycle_current++;
 	}
 	return (NULL);
 }
