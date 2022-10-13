@@ -6,7 +6,7 @@
 /*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/13 09:09:59 by tbousque          #+#    #+#             */
-/*   Updated: 2022/10/13 09:29:54 by tbousque         ###   ########.fr       */
+/*   Updated: 2022/10/13 09:49:29 by tbousque         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,8 @@ size_t	philos_pthread_create_odd(t_philo *philos, pthread_t *threads, \
 	{
 		while (i < philo_count)
 		{
-			if (pthread_create(threads + i, NULL, philo_routine, &philos[i]) != 0)
+			if (pthread_create(threads + i, NULL, philo_routine, &philos[i]) \
+				!= 0)
 				return (i);
 			i++;
 		}
@@ -58,7 +59,9 @@ size_t	philos_pthread_create(t_philo *philos, pthread_t *threads, \
 	size_t philo_count, void *(*philo_routine)(void *))
 {
 	if (philo_count % 2 == 1)
-		return (philos_pthread_create_odd(philos, threads, philo_count, philo_routine));
+		return (philos_pthread_create_odd(philos, threads, \
+			philo_count, philo_routine));
 	else
-		return (philos_pthread_create_even(philos, threads, philo_count, philo_routine));
+		return (philos_pthread_create_even(philos, threads, \
+			philo_count, philo_routine));
 }

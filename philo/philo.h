@@ -6,7 +6,7 @@
 /*   By: tbousque <tbousque@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/12 22:43:59 by tbousque          #+#    #+#             */
-/*   Updated: 2022/10/13 09:15:20 by tbousque         ###   ########.fr       */
+/*   Updated: 2022/10/13 09:47:06 by tbousque         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,4 +61,6 @@ int					has_died(t_philo *const self, \
 	unsigned long long current_time);
 size_t				philos_pthread_create(t_philo *philos, \
 	pthread_t *threads, size_t philo_count, void *(*philo_routine)(void *));
+void				*philo_start(void *arg);
+void				print_state(t_philo *const self);
 #endif
